@@ -1,0 +1,23 @@
+{
+    "defaultSeverity": "error",
+    "extends": [
+        "tslint:recommended"
+    ],
+    "jsRules": {},
+    "rules": {
+        "trailing-comma": [ false ],
+        "no-console": false,
+        "jsdoc-format": false,
+        "only-arrow-functions": false,
+        "adjacent-overload-signatures": false,
+        "one-variable-per-declaration": false,
+        "no-shadowed-variable": false,
+        "variable-name": false,
+        "no-empty": false,
+        "prefer-const": false,
+        "forin": false,
+        "ban-types": false,
+        "max-classes-per-file": false
+    },
+    "rulesDirectory": []
+}

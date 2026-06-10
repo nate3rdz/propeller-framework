@@ -1,21 +1,25 @@
 {
     "compilerOptions": {
-        "module": "ES6",
+        "experimentalDecorators": true,
+        "emitDecoratorMetadata": true,
+        "module": "ES2022",
         "esModuleInterop": true,
-        "target": "ES6",
+        "target": "es2022",
         "noImplicitAny": true,
         "moduleResolution": "node",
-        "experimentalDecorators": true,
         "sourceMap": true,
+        "declaration": true,
+        "declarationMap": true,
         "outDir": "dist",
         "baseUrl": ".",
         "paths": {
             "*": [
                 "node_modules/*"
             ]
-        }
+        },
+        "strict": false
     },
     "include": [
-        "src/**/*"
+        "src/**/*.ts"
     ]
- }
+}
