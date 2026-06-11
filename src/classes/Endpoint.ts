@@ -34,7 +34,8 @@ export default abstract class Endpoint<
         account: null,
         auth: {
             token: null,
-            data: null
+            data: null,
+            metadata: null,
         },
         request: {
             ip: null
@@ -90,10 +91,11 @@ export default abstract class Endpoint<
                 }
 
                 if (innerDataPopulationSuccess) { // if the innerData population went correctly
-                    // user permissions check via the user-provided resolver
-                    const givenPermissions = config.permissionsResolver
-                        ? config.permissionsResolver(endpoint._innerData.account)
-                        : [];
+                    // user permissions check via the user-provided resolver (only when auth is active and account is populated)
+                    const givenPermissions = 
+                        (endpoint.auth && endpoint._innerData.account && config.permissionsResolver)
+                            ? config.permissionsResolver(endpoint._innerData.account)
+                            : [];
 
                     if (!PermissionsService.validate(givenPermissions, endpoint?.requiredPermissions || []))
                         throw new InternalAPIError('Not authorized to perform this action.', 403);
@@ -202,11 +204,11 @@ export default abstract class Endpoint<
         this._requiredPermissions = permissions;
     }
 
-    private set validators(validators: IEndpointValidator[]) {
+    public set validators(validators: IEndpointValidator[]) {
         this._validators = validators;
     }
 
-    private set middlewares(middlewares: IEndpointMiddleware[]) {
+    public set middlewares(middlewares: IEndpointMiddleware[]) {
         this._middlewares = middlewares;
     }
 

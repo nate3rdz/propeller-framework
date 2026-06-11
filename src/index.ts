@@ -10,11 +10,11 @@ export { default as AuthService } from './services/auth.service.js';
 export { default as PermissionsService } from './services/permissions.service.js';
 
 // Config
-export { configure, getConfig } from './config.js';
 export type { PropellerConfig } from './config.js';
+export { getDataSource } from './config.js';
 
 // Router
-export { initRouting } from './routes/router.js';
+export { init } from './routes/router.js';
 
 // Middleware registry
 export { registerMiddleware } from './middlewares/index.js';

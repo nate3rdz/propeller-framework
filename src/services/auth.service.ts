@@ -1,10 +1,8 @@
 import jwt from 'jsonwebtoken';
 import IJWT, { JWTData } from "../interfaces/system/IAuth.js";
-
-import { compareSync } from 'bcrypt';
 import Environment from "../env.js";
 
-const environment = Environment.getInstance();
+import { compareSync } from 'bcrypt';
 
 export default class AuthService {
     constructor() {
@@ -21,7 +19,7 @@ export default class AuthService {
         const compare = compareSync(password, user.Password);
         if (compare) {
             const jwt = this.generate({ userId: Number(user.id) });
-            return { token: jwt.token, success: true };
+            return { token: jwt, success: true };
         } else return { token: "Unauthorized.", success: false };
     }
 
@@ -30,10 +28,17 @@ export default class AuthService {
      * @param {JWTData} data
      * @returns {IJWT}
      */
-    static generate(data: JWTData): IJWT {
+    static generate(data: JWTData): string {
+        const environment = Environment.getInstance();
+
         try {
-            const token = jwt.sign(data, environment.config.jwt.secret); // signs the jwt
-            return { token, data }; // returns the JWT
+            const token = jwt.sign({
+                ...data,
+                metadata: {
+                    expiresAt: new Date().getTime() + environment.config.jwt.defaultTokenExpTime,
+                }
+            }, Environment.getInstance().config.jwt.secret); // signs the jwt
+            return token;
         } catch (e) {
             console.error(e.toString());
         }
@@ -50,12 +55,18 @@ export default class AuthService {
             if (token.match(/^(Bearer) ([a-zA-Z0-9\-_.]+)$/g))
                 token = token.split(' ')[1];
 
+            // validates and then decodes the token
+            if (!AuthService.validate(token)) return null;
+
             const tok = jwt.decode(token);
-            if (typeof (tok) === 'string') return null;
+            if (!tok || typeof tok === 'string') return null;
+
+            const { metadata, ...data } = tok as JWTData & IJWT;
 
             return {
                 token,
-                data: { ...tok as JWTData }
+                data,
+                metadata,
             };
         } catch (e) {
             console.error(e.toString());
@@ -70,11 +81,12 @@ export default class AuthService {
         if (token.match(/^(Bearer) ([a-zA-Z0-9\-_.]+)$/g))
             token = token.split(' ')[1];
 
-        jwt.verify(token, environment.config.jwt.secret, (err, _decoded) => {
-            if (err)
-                return false;
-        });
-        return true;
+        try {
+            jwt.verify(token, Environment.getInstance().config.jwt.secret);
+            return true;
+        } catch (e) {
+            return false;
+        }
     }
 
 }

@@ -1,4 +1,4 @@
-import { getConfig } from "../config.js";
+import Environment from "../env.js";
 
 export default class PropellerLogger {
     constructor() {
@@ -8,7 +8,7 @@ export default class PropellerLogger {
     static logData() {
         const date = new Date();
         const time = `[${date.getUTCHours()}:${date.getUTCMinutes()}:${date.getUTCSeconds()}:${date.getUTCMilliseconds()}]`;
-        const appName = `[${getConfig().appName ?? 'Propeller'}]`;
+        const appName = `[${Environment.getInstance().app.name}]`;
 
         return time+appName;
     }

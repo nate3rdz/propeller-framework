@@ -1,22 +1,25 @@
 // Build script
 
-import {build} from 'esbuild';
-import data from "./package.json" assert { type: 'json'};
-import dts from 'npm-dts';
+import { build } from 'esbuild';
+import { execSync } from 'child_process';
+import data from "./package.json" with { type: 'json' };
 
-const result = new dts.Generator({
-  entry: 'src/index.ts',
-  output: 'dist/index.d.ts',
-}).generate();
+execSync('npx tsc --emitDeclarationOnly --outDir dist', { stdio: 'inherit' });
 
 const sharedConfig = {
   entryPoints: ["src/index.ts"],
   bundle: true,
   minify: true,
-  external: Object.keys(data.dependencies).concat(Object.keys(data.devDependencies)),
+  format: 'esm',
+  platform: 'node',
+  external: [
+    ...Object.keys(data.dependencies),
+    ...Object.keys(data.devDependencies),
+    ...Object.keys(data.peerDependencies ?? {}),
+  ],
 };
+
 build({
   ...sharedConfig,
-  platform: 'node', // for CJS
   outfile: "dist/index.js",
 });
