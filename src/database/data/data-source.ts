@@ -11,7 +11,7 @@ export function createDataSource(options: Partial<DataSourceOptions> & Pick<Data
 
     // Embedded drivers (SQLite etc.) only need a database path, not host/user/password
     if (!isEmbedded) {
-        const missing = (['host', 'port', 'user', 'password', 'name'] as const)
+        const missing = (['host', 'port', 'user', 'name'] as const)
             .filter(key => !env.server.database[key]);
         if (missing.length > 0) {
             PropellerLogger.error(`Database configuration data missing (${missing.join(', ')}); database connection will be skipped. Make sure your .env file is loaded before calling createDataSource().`);

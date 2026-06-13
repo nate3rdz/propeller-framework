@@ -1,6 +1,7 @@
 import { Request, Response, Router } from 'express';
 import * as fs from 'fs';
 import * as path from 'path';
+import { pathToFileURL } from 'url';
 import InternalAPIError from '../classes/InternalAPIError.js';
 import * as table from 'table';
 import Endpoint from '../classes/Endpoint.js';
@@ -121,12 +122,13 @@ async function handlePath(directoryPath: string, router: Router) {
         // if the file is a directory, recursively call the function into it
         if (stat.isDirectory()) {
             await handlePath(filePath, router);
-        } else if ((path.extname(file) === '.js' || path.extname(file) === '.ts') && !filePath.match(/(.)+\/router.ts/)) { // else, import the class
-            filePath = filePath.replace('src/routes/', './');
-            filePath = filePath.replace('.ts', '.js');
+        } else if (
+            path.extname(file) === '.js' && !filePath.match(/(.)+\/router.ts/)
+        ) { // else, import the class
+            const fileUrl = pathToFileURL(path.resolve(filePath)).href;
 
             try {
-                const module = await import(filePath);
+                const module = await import(fileUrl);
                 // gets the class from the module
                 const className = Object.keys(module)[0];
                 const Classe = module[className];
@@ -145,7 +147,7 @@ async function handlePath(directoryPath: string, router: Router) {
     };
 }
 
-async function initializeEndpoint<R extends Request, S extends Response, G, T extends Endpoint<R, S, G>>(endpoint: T, router: Router) {
+async function initializeEndpoint<T extends Endpoint>(endpoint: T, router: Router) {
     const env = Environment.getInstance();
     const baseUrl = env.config.routing.baseUrl;
 

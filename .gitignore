@@ -6,3 +6,6 @@ yarn.lock
 
 # Build files
 /dist
+
+# Test directory
+/test

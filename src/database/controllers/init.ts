@@ -9,6 +9,12 @@ export async function dbInit(dataSource: DataSource): Promise<void> {
     await dataSource.initialize().then(() => {
         PropellerLogger.info('Successfully connected to DB');
     }).catch(e => {
-        throw new Error(e.toString());
+        PropellerLogger.error(`Error while connecting to DB (${e.toString()}), retrying in 3s...`);
+
+        const now = new Date().getTime();
+        while ((new Date().getTime()) < now+3) {
+        }
+
+        dbInit(dataSource);
     });
 }

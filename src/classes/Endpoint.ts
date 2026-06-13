@@ -1,6 +1,7 @@
 import { NextFunction, Request, Response } from "express";
 import PropellerLogger from "../services/propellerLogger.service.js";
-import IEndpoint, { EndpointFunction, EndpointMethods } from "../interfaces/endpoints-system/IEndpoint.js";
+import IEndpoint, { EndpointMethods } from "../interfaces/endpoints-system/IEndpoint.js";
+import IPropellerOutputContract from "../interfaces/endpoints-system/IPropellerOutputContract.js";
 import IEndpointMiddleware from "../interfaces/endpoints-system/IEndpointMiddleware.js";
 import IEndpointValidator from "../interfaces/endpoints-system/IEndpointValidator.js";
 import { MIDDLEWARES } from "../middlewares/index.js";
@@ -9,26 +10,27 @@ import InnerDataI from "../interfaces/endpoints-system/InnerDataI.js";
 import AuthService from "../services/auth.service.js";
 import PermissionsService from "../services/permissions.service.js";
 import { getConfig } from "../config.js";
+import IPropellerInputContract from "../interfaces/endpoints-system/IPropellerInputContract.js";
 
 export default abstract class Endpoint<
-    R extends Request,
-    S extends Response,
-    T,
     TAccount = any,
-    TPermission extends string = string
-> implements IEndpoint<R, S, T, TPermission> {
+    TPermission extends string = never,
+    TInput extends IPropellerInputContract = IPropellerInputContract,
+    TOutput extends IPropellerOutputContract = IPropellerOutputContract,
+> implements IEndpoint {
 
     constructor(middlewares?: IEndpointMiddleware[]) {
         this.setValidators();
         this.setMiddlewares(middlewares || []);
     }
 
+    abstract handler(): Promise<TOutput>;
+
     private _method: EndpointMethods;
     private _auth: boolean = true;
     private _requiredPermissions: TPermission[] = [];
     private _validators: IEndpointValidator[] = [];
     private _path: string;
-    private _function: EndpointFunction<R, S, T>;
     private _middlewares: IEndpointMiddleware[] = [];
     private _innerData: InnerDataI<TAccount> = {
         account: null,
@@ -41,6 +43,11 @@ export default abstract class Endpoint<
             ip: null
         }
     };
+    private _request: Request<TInput['params'], any, TInput['body'], TInput['headers']>;
+    private _params: TInput['params'];
+    private _query: TInput['query'];
+    private _body: TInput['body'];
+    private _headers: TInput['headers'];
 
     /**This function sets the validators of the endpoint. */
     abstract setValidators(): void;
@@ -53,10 +60,15 @@ export default abstract class Endpoint<
     /** This function generates an endpoint flow. It's called inside of the router, and takes an endpoint as argument.
      * This is done to circumvent the limitation about the subclasses that implements this endpoint.
      */
-    static generate<R extends Request, S extends Response, T, TAccount, TPermission extends string>(
-        endpoint: Endpoint<R, S, T, TAccount, TPermission>
-    ): (req: R, res: S, next: NextFunction) => Promise<void> {
-        return async (req: R, res: S, next: NextFunction) => {
+    static generate<
+        TPermission extends string = string, 
+        TAccount = any, 
+        TInput extends IPropellerInputContract = IPropellerInputContract,
+        TOutput extends IPropellerOutputContract = IPropellerOutputContract
+    >(
+        endpoint: Endpoint<TAccount, TPermission, TInput, TOutput>
+    ): (req: Request, res: Response, next: NextFunction) => Promise<void> {
+        return async (req: Request, res: Response, next: NextFunction) => {
             try {
                 const config = getConfig();
 
@@ -100,31 +112,33 @@ export default abstract class Endpoint<
                     if (!PermissionsService.validate(givenPermissions, endpoint?.requiredPermissions || []))
                         throw new InternalAPIError('Not authorized to perform this action.', 403);
 
+                    endpoint._request = req;
+                    endpoint._params = req.params;
+                    endpoint._headers = req.headers;
+                    endpoint._body = req.body;
+                    endpoint._query = req.query;
 
-                    let middlewareResult = null; // if there's any 'pre' middleware, then this variable saves the result of the middleware
-                    let data = null; // final result of endpoint's call.
+                    let data: TOutput = null; // final result of endpoint's call.
 
                     for (let middleware of endpoint.middlewares || []) { // applies 'pre' middlewares, if any
                         if (middleware.dest === 'pre') {
-                            //@ts-ignore
-                            middlewareResult = await MIDDLEWARES[middleware.identifier](req); // todo: the typing is lost here because of the definition of the MIDDLEWARES array. Find a solution
+                            data = await MIDDLEWARES[middleware.identifier](req); // todo: the typing is lost here because of the definition of the MIDDLEWARES array. Find a solution
                         }
                     }
 
                     // TODO: Add somesort of runtime validation here
 
-                    data = await endpoint.function(middlewareResult || req, res); // applies main function
+                    data = await endpoint.handler(); // applies main function
 
                     // TODO: Add somesort of runtime validation here
 
                     for (let middleware of endpoint.middlewares || []) { // applies 'post' middlewares, if any
                         if (middleware.dest === 'post') {
-                            //@ts-ignore
                             data = await MIDDLEWARES[middleware.identifier](data as any);
                         }
                     }
 
-                    res.send(data); // sends the result to the user.
+                    res.send(data.body).header(data.headers); // sends the result to the user.
                 }
             } catch (e) {
                 if (e instanceof InternalAPIError) {
@@ -145,11 +159,6 @@ export default abstract class Endpoint<
     /** The method used by the endpoint (e.g. POST, GET) */
     public get method() {
         return this._method;
-    }
-
-    /** Function runned by this endpoint */
-    public get function() {
-        return this._function;
     }
 
     /** If the endpoint should be protected by JWT validation. By default it's true */
@@ -177,6 +186,26 @@ export default abstract class Endpoint<
         return this._path;
     }
 
+    public get originalRequest() {
+        return this._request;
+    }
+
+    public get query() {
+        return this._query;
+    }
+
+    public get params() {
+        return this._params;
+    }
+
+    public get body() {
+        return this._body;
+    }
+
+    public get headers() {
+        return this._headers;
+    }
+
     /**
      * The basic data that can be extrapolated by an API call and that's seeded into each endpoints
     */
@@ -190,10 +219,6 @@ export default abstract class Endpoint<
     /****************SETTERS****************/
     public set method(method: EndpointMethods) {
         this._method = method;
-    }
-
-    public set function(fn: EndpointFunction<R, S, T>) {
-        this._function = fn;
     }
 
     public set auth(auth: boolean) {
