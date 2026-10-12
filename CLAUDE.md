@@ -61,3 +61,23 @@ Le istruzioni specifiche fornite dal maintainer vengono aggiunte in questa sezio
   - titoli, descrizioni e commenti di PR/MR o issue.
 - Per riferirsi al proprietario si usa sempre il termine generico **"il maintainer"**.
 - Se un dato personale è già presente in un file toccato da un task, l'agente lo segnala nella PR senza propagarlo altrove.
+
+### 5.2 Segnalazione dei problemi tramite issue
+
+- Ogni volta che un agente trova un problema nel codice (bug, vulnerabilità, comportamento diverso da quello documentato, codice incompleto, TODO, dipendenze problematiche, problemi di qualità), **DEVE** aprire una issue su GitHub.
+- **Un problema distinto = una issue.** Non si raggruppano più problemi nella stessa issue.
+- Prima di aprire una issue, l'agente verifica che non ne esista già una per lo stesso problema. Se esiste, aggiunge un commento con le nuove informazioni invece di aprirne una nuova.
+- **Relazioni causa-effetto:** se un problema è conseguenza di un altro, l'agente individua quale è la causa e quale l'effetto, e:
+  - apre (o individua) prima la issue della **causa**;
+  - nella issue dell'**effetto** scrive esplicitamente che il problema è dovuto alla causa, linkandone la issue (es. `Causato da #12`).
+- Se due problemi sono collegati ma non in rapporto causa-effetto, lo indica in entrambe le issue come "Correlata a #N".
+- Contenuto minimo di ogni issue:
+  - **Descrizione** del problema;
+  - **Dove**: file e righe coinvolte;
+  - **Evidenza**: come riprodurlo o perché è un problema;
+  - **Impatto**;
+  - **Proposta di soluzione**, se nota;
+  - **Relazioni** con altre issue, se presenti.
+- Label: `bug` per difetti, `enhancement` per funzionalità mancanti o incomplete, `documentation` per problemi di documentazione. Per problemi di sicurezza il titolo inizia con `[security]`.
+- Aprire una issue **non** autorizza a risolverla: la correzione avviene solo come task assegnato dal maintainer, seguendo il flusso della sezione 3.
+- Le regole sui dati personali (5.1) valgono anche per le issue.
