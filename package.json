@@ -4,7 +4,8 @@
   "description": "Propeller makes developers life easier: it allows you to create class-styled endpoints to run on your server, with validators and middlewares features inside of it.",
   "scripts": {
     "build": "node build.js",
-    "build:dev": "bash build.sh"
+    "build:dev": "bash build.sh",
+    "test": "npm run build && node --test --test-force-exit tests/*.test.js"
   },
   "files": [
     "dist/*"

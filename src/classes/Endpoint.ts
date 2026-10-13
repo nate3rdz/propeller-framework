@@ -59,6 +59,8 @@ export default abstract class Endpoint<
 
     /** This function generates an endpoint flow. It's called inside of the router, and takes an endpoint as argument.
      * This is done to circumvent the limitation about the subclasses that implements this endpoint.
+     * A new instance of the endpoint class is created for every request, so request data stored on the
+     * instance is never shared between concurrent requests.
      */
     static generate<
         TPermission extends string = string, 
@@ -66,10 +68,14 @@ export default abstract class Endpoint<
         TInput extends IPropellerInputContract = IPropellerInputContract,
         TOutput extends IPropellerOutputContract = IPropellerOutputContract
     >(
-        endpoint: Endpoint<TAccount, TPermission, TInput, TOutput>
+        template: Endpoint<TAccount, TPermission, TInput, TOutput>
     ): (req: Request, res: Response, next: NextFunction) => Promise<void> {
+        const EndpointClass = template.constructor as new () => Endpoint<TAccount, TPermission, TInput, TOutput>;
+
         return async (req: Request, res: Response, next: NextFunction) => {
             try {
+                const endpoint = new EndpointClass();
+
                 const config = getConfig();
 
                 // innerData population
